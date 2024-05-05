@@ -5,8 +5,8 @@ const sequelize = new Sequelize({
   storage: './database.sqlite3'
 });
 
-class Profile extends Sequelize.Model {}
-Profile.init(
+class Game extends Sequelize.Model {}
+Game.init(
   {
     firstName: {
       type: Sequelize.STRING,
