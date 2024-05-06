@@ -2,25 +2,31 @@ const fs = require('fs')
 const report = [];
 const WORLD_ID = 1022
 const outputFilePath = `${__dirname}/../data/output/report.json`;
+const gamesFilePath = `${__dirname}/../data/output/games.json`;
 
 const createReport = () => {
-  const games = require(`${__dirname}/../data/output/games.json`)
+  console.log('Initializing report...')
+  const games = require(gamesFilePath)
 
   for (const game of games) {
-    createGameReport(game)
+    const gameReport = getGameReportData(game)
+    report.push (gameReport)
   }
+
+  console.log("Games:");
+  console.log(require('util').inspect(report, { depth: null }));
 
   try {
     fs.writeFileSync(outputFilePath, JSON.stringify(report, null, 2), 'utf8');
-    console.log('Data successfully saved to disk');
+    console.log(`Report created and saved to '${outputFilePath}'`);
   } catch (error) {
-    console.log('An error has occurred ', error);
+    console.log(`An error has occurred while saving the report to '${outputFilePath}' `, error);
   }
 }
 
-const createGameReport = (game) => {
+const getGameReportData = (game) => {
 
-  const total_kills = game.killEvents.length ?? 0;
+  const total_kills = game.killEvents.length || 0;
 
   const players = game.players.map(player => player.n);
 
@@ -30,7 +36,7 @@ const createGameReport = (game) => {
 
   const kills_by_means = getKillsByMeansReport(game.killEvents)
 
-  const gameReport = {
+  return {
     id: game.id,
     total_kills,
     players,
@@ -38,7 +44,6 @@ const createGameReport = (game) => {
     kills_by_means,
     ranking,
   }
-  report.push (gameReport)
 }
 
 const getKillsReport = (killEvents, players) => {
@@ -96,7 +101,5 @@ const getPlayerRanking = (kills) => {
 
   return ranking
 }
-
-
 
 createReport();

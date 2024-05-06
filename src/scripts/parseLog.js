@@ -9,6 +9,7 @@ const games = [];
 let currentGameId = 0;
 
 async function processLogFile(filePath) {
+  console.log('Log parsing Initialized...')
   const rl = readline.createInterface({
     input: fs.createReadStream(filePath),
     output: process.stdout,
@@ -18,17 +19,17 @@ async function processLogFile(filePath) {
   for await (const line of rl) {
     parseLine(line)
   }
-  console.log('End of file reached.');
+  
   try {
     fs.writeFileSync(outputFilePath, JSON.stringify(games, null, 2), 'utf8');
-    console.log('Data successfully saved to disk');
+    console.log(`Log data parsed and saved to '${outputFilePath}'`);
   } catch (error) {
-    console.log('An error has occurred ', error);
+    console.log('An error has occurred while saving parsed log data ', error);
   }
 }
 
 const parseLine = (line) => {
-  const event = line.match(/^.{0,7}([a-z A-Z][^:]*)/)[1] ?? null
+  const event = line.match(/^.{0,7}([a-z A-Z][^:]*)/)[1] || null
 
   switch (event) {
     case 'InitGame':
@@ -49,20 +50,21 @@ const parseLine = (line) => {
 
     default:
       // console.log('line ignored for event: ', event)
+      break;
   }
 }
 
+// Create a new game and push it to Games array
 const createGame = (line) => {
-
-  console.log ('event createGame launched')
   currentGameId++;
 
-  const splitGame = line.split('\\')
   const game = {
     id: currentGameId,
     players: [],
     killEvents: [],
   }
+
+  const splitGame = line.split('\\')
 
   for (let i = 1; i < splitGame.length; i += 2) {
     const key = splitGame[i].trim();
@@ -73,6 +75,7 @@ const createGame = (line) => {
   games.push (game)
 }
 
+// Add a Player to the current game
 const addPlayer = (line) => {
   const playerId = Number(line.split(':')[2].trim())
   const game = getCurrentGame();
@@ -89,10 +92,10 @@ const addPlayer = (line) => {
   }
 }
 
+// Updates a previously added player with the player info
 const updatePlayer = (line) => {
 
   const regex = /^(\d*:\d*) (\w+): (\d+) (.*)$/;
-
   const matches = line.trim().match(regex);
 
   if (!matches) {
@@ -105,7 +108,7 @@ const updatePlayer = (line) => {
   const playerDataSplit = playerDataString.split('\\');
   
   const player = {
-    id: Number(playerId)
+    id: parseInt(playerId)
   }
     
   for (let i = 0; i < playerDataSplit.length; i += 2) {
@@ -117,6 +120,7 @@ const updatePlayer = (line) => {
   updatePlayerInformation(playerId, player);
 }
 
+// add a kill event to the current game
 const addKill = (line) => {
 
   const game = getCurrentGame();
@@ -150,29 +154,27 @@ const addKill = (line) => {
   })
 
   updateGame(game)
-
-  // const playerDataSplit = playerDataString.split('\\');
 }
 
-// utils
-const getCurrentGame = () => {
-  const game = games.filter(game => game.id === currentGameId)[0] ?? null
+// UTILS
 
-  return game;
-}
+// returns the current running game
+const getCurrentGame = () => 
+  games.find(game => game.id === currentGameId) || null
 
-const getPlayerName = (playerId, players) => {
-  if (playerId === WORLD_ID)
-    return '<world>'
-  const player = players.find(player => player.id === playerId)
-  return player.n
-}
+// Gets the player name, based on the playerId
+const getPlayerName = (playerId, players) =>
+  (playerId !== WORLD_ID) ?
+    players.find(player => player.id === playerId).n : 
+    /* otherwise */ '<world>'
 
+// Update game object into games array
 const updateGame = (game) => {
   const gameIndex = games.findIndex(game => game.id === currentGameId)
   games[gameIndex] = game
 }
 
+// Updates player information into game object, of games array
 const updatePlayerInformation = (playerId, player) => {
 
   const game = getCurrentGame();
